@@ -159,6 +159,66 @@ final class HttpHostTest extends TestCase
 		$host->handle('GET', '/ping');
 	}
 
+	public function testHandlerReceivesSinglePathParam(): void
+	{
+		$runtime = $this->buildRuntime([
+			'users.show' => [
+				'method'  => 'GET',
+				'path'    => '/users/{id}',
+				'handler' => static function (OperationContextInterface $ctx): string {
+					$params = $ctx->metadata('params');
+					$id     = is_array($params) ? ($params['id'] ?? null) : null;
+
+					return is_string($id) ? $id : '';
+				},
+			],
+		]);
+
+		$host = new HttpHost($runtime);
+
+		$this->assertSame('42', $host->handle('GET', '/users/42'));
+	}
+
+	public function testHandlerReceivesMultiplePathParams(): void
+	{
+		$runtime = $this->buildRuntime([
+			'comments.show' => [
+				'method'  => 'GET',
+				'path'    => '/posts/{postId}/comments/{commentId}',
+				'handler' => static function (OperationContextInterface $ctx): string {
+					$params    = $ctx->metadata('params');
+					$postId    = is_array($params) ? ($params['postId'] ?? null) : null;
+					$commentId = is_array($params) ? ($params['commentId'] ?? null) : null;
+
+					return (is_string($postId) ? $postId : '') . ':' . (is_string($commentId) ? $commentId : '');
+				},
+			],
+		]);
+
+		$host = new HttpHost($runtime);
+
+		$this->assertSame('7:3', $host->handle('GET', '/posts/7/comments/3'));
+	}
+
+	public function testHandlerReceivesEmptyParamsForStaticRoute(): void
+	{
+		$runtime = $this->buildRuntime([
+			'ping' => [
+				'method'  => 'GET',
+				'path'    => '/ping',
+				'handler' => static function (OperationContextInterface $ctx): string {
+					$params = $ctx->metadata('params');
+
+					return is_array($params) && $params === [] ? 'empty' : 'non-empty';
+				},
+			],
+		]);
+
+		$host = new HttpHost($runtime);
+
+		$this->assertSame('empty', $host->handle('GET', '/ping'));
+	}
+
 	public function testHttpNotFoundExceptionCarriesMethodAndPath(): void
 	{
 		$runtime = $this->buildRuntime([

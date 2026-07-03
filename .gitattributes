@@ -1,0 +1,11 @@
+# Force LF in the repo regardless of client OS.
+# Prevents PHP-CS-Fixer vs. Windows autocrlf false-positive diffs.
+* text=auto eol=lf
+*.php text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.neon text eol=lf
+*.xml text eol=lf
+*.md text eol=lf
+*.dist text eol=lf

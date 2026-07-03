@@ -48,14 +48,14 @@ final class Request
     /** @var array<string, string> */
     public array $server = [];
 
-    /** @var array<string, string> */
-    public array $header = [];
+    /** @var array<string, string>|null */
+    public ?array $header = null;
 
-    /** @var array<string, string> */
-    public array $get = [];
+    /** @var array<string, string>|null */
+    public ?array $get = null;
 
-    /** @var array<string, mixed> */
-    public array $post = [];
+    /** @var array<string, mixed>|null */
+    public ?array $post = null;
 
     public function rawContent(): string|false {}
 }

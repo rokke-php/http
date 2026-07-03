@@ -34,9 +34,9 @@ final class HttpContextFactory
 	{
 		return $this->fromMatch(
 			match: $match,
-			headers: $request->header,
+			headers: $request->header ?? [],
 			body: $request->rawContent() ?: '',
-			query: $request->get,
+			query: $request->get ?? [],
 		);
 	}
 }

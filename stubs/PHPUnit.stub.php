@@ -25,6 +25,11 @@ abstract class Assert
 
     public static function assertStringContainsString(string $needle, string $haystack, string $message = ''): void {}
 
+    /** @phpstan-assert array<mixed> $actual */
+    public static function assertIsArray(mixed $actual, string $message = ''): void {}
+
+    public static function assertNotSame(mixed $expected, mixed $actual, string $message = ''): void {}
+
     /** @return never */
     public static function fail(string $message = ''): void {}
 

@@ -6,7 +6,6 @@ namespace Rokke\Http;
 
 use Rokke\Http\Compiled\CompiledRouteTree;
 use Rokke\Runtime\Compiled\CompiledRuntime;
-use Rokke\Runtime\Context\OperationContext;
 use Rokke\Runtime\Engine\ExecutionEngine;
 use Rokke\Runtime\Engine\Invoker;
 
@@ -14,11 +13,13 @@ final class HttpHost
 {
 	private readonly CompiledRouteTree $routeTree;
 	private readonly ExecutionEngine $engine;
+	private readonly HttpContextFactory $contextFactory;
 
 	public function __construct(CompiledRuntime $runtime)
 	{
-		$this->routeTree = $runtime->artifacts->get(CompiledRouteTree::class) ?? CompiledRouteTree::empty();
-		$this->engine    = new ExecutionEngine(new Invoker($runtime));
+		$this->routeTree      = $runtime->artifacts->get(CompiledRouteTree::class) ?? CompiledRouteTree::empty();
+		$this->engine         = new ExecutionEngine(new Invoker($runtime));
+		$this->contextFactory = new HttpContextFactory();
 	}
 
 	public function handle(string $method, string $path): mixed
@@ -30,7 +31,7 @@ final class HttpHost
 		}
 
 		$operation = new HttpOperation($match->operationId);
-		$context   = new OperationContext(uniqid('http-', true));
+		$context   = $this->contextFactory->fromMatch($match);
 
 		return $this->engine->execute($operation, $context);
 	}
@@ -44,13 +45,24 @@ final class HttpHost
 				$method = strtoupper($request->server['request_method'] ?? 'GET');
 				$path   = $request->server['request_uri'] ?? '/';
 
-				$result = $this->handle($method, $path);
-				$body   = is_string($result) ? $result : (string) json_encode($result);
+				$match = $this->routeTree->match($method, $path);
+
+				if ($match === null) {
+					$response->status(404);
+					$response->end('Not Found');
+
+					return;
+				}
+
+				$operation = new HttpOperation($match->operationId);
+				$context   = $this->contextFactory->fromRequest($request, $match);
+				$result    = $this->engine->execute($operation, $context);
+				$body      = is_string($result) ? $result : (string) json_encode($result);
 
 				$response->end($body);
-			} catch (HttpNotFoundException) {
-				$response->status(404);
-				$response->end('Not Found');
+			} catch (\Throwable) {
+				$response->status(500);
+				$response->end('Internal Server Error');
 			}
 		});
 

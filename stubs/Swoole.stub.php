@@ -51,13 +51,13 @@ final class Request
     /** @var array<string, string> */
     public array $header = [];
 
-    /** @var array<string, mixed> */
+    /** @var array<string, string> */
     public array $get = [];
 
     /** @var array<string, mixed> */
     public array $post = [];
 
-    public function rawContent(): ?string {}
+    public function rawContent(): string|false {}
 }
 
 final class Response

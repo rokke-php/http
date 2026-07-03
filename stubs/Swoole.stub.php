@@ -40,3 +40,42 @@ final class System
 {
     public static function sleep(float $seconds): bool {}
 }
+
+namespace Swoole\Http;
+
+final class Request
+{
+    /** @var array<string, string> */
+    public array $server = [];
+
+    /** @var array<string, string> */
+    public array $header = [];
+
+    /** @var array<string, mixed> */
+    public array $get = [];
+
+    /** @var array<string, mixed> */
+    public array $post = [];
+
+    public function rawContent(): ?string {}
+}
+
+final class Response
+{
+    public function status(int $code, string $reason = ''): bool {}
+
+    public function header(string $key, string $value, bool $format = true): bool {}
+
+    public function end(string $body = ''): bool {}
+}
+
+final class Server
+{
+    public function __construct(string $host, int $port, int $mode = 2, int $sockType = 1) {}
+
+    public function on(string $event, callable $callback): bool {}
+
+    public function start(): bool {}
+
+    public function stop(): bool {}
+}

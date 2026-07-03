@@ -23,6 +23,11 @@ abstract class Assert
 
     public static function assertNotNull(mixed $actual, string $message = ''): void {}
 
+    public static function assertStringContainsString(string $needle, string $haystack, string $message = ''): void {}
+
+    /** @return never */
+    public static function fail(string $message = ''): void {}
+
     public static function assertCount(int $expectedCount, \Countable|iterable $haystack, string $message = ''): void {}
 
     /** @param iterable<mixed> $haystack */

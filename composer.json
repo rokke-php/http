@@ -1,0 +1,66 @@
+{
+	"name": "rokke/http",
+	"description": "HTTP transport adapter for the Rokke Runtime — routes Swoole HTTP requests to compiled operations",
+	"type": "library",
+	"license": "MIT",
+	"authors": [
+		{
+			"name": "Fernando Duarte",
+			"email": "fduarte@rokke.dev"
+		}
+	],
+	"keywords": [
+		"http",
+		"swoole",
+		"rokke",
+		"php"
+	],
+	"homepage": "https://rokke.dev",
+	"support": {
+		"issues": "https://github.com/rokke-php/http/issues",
+		"source": "https://github.com/rokke-php/http"
+	},
+	"version": "0.1.0",
+	"require": {
+		"php": ">=8.4",
+		"ext-swoole": ">=5.0",
+		"rokke/contracts": "^0.4.0",
+		"rokke/runtime": "^0.7.0"
+	},
+	"require-dev": {
+		"friendsofphp/php-cs-fixer": "^3.64",
+		"phpstan/phpstan": "^1.12",
+		"phpstan/phpstan-phpunit": "^1.4",
+		"phpunit/phpunit": "^13.0"
+	},
+	"autoload": {
+		"psr-4": {
+			"Rokke\\Http\\": "src/"
+		}
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"Rokke\\Http\\Tests\\": "tests/"
+		}
+	},
+	"config": {
+		"optimize-autoloader": true,
+		"sort-packages": true,
+		"preferred-install": "dist",
+		"allow-plugins": {}
+	},
+	"scripts": {
+		"test": "phpunit",
+		"test:coverage": "phpunit --coverage-html coverage/",
+		"lint": "php-cs-fixer fix --dry-run --diff --verbose",
+		"lint:fix": "php-cs-fixer fix",
+		"analyse": "phpstan analyse --memory-limit=2G",
+		"check": [
+			"@lint",
+			"@analyse",
+			"@test"
+		]
+	},
+	"minimum-stability": "stable",
+	"prefer-stable": true
+}

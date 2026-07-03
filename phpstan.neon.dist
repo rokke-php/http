@@ -1,0 +1,29 @@
+
+parameters:
+    level: max
+    paths:
+        - src
+        - tests
+    checkMissingIterableValueType: true
+    checkGenericClassInNonGenericObjectType: true
+    checkUninitializedProperties: true
+    checkImplicitMixed: true
+    parallel:
+        maximumNumberOfProcesses: 4
+    reportUnmatchedIgnoredErrors: true
+
+    # Swoole classes are only available at runtime (production server).
+    # Analysis runs without ext-swoole installed, so we stub the symbols here.
+    stubFiles:
+        - stubs/Swoole.stub.php
+
+    scanFiles:
+        - stubs/PHPUnit.stub.php
+
+    bootstrapFiles:
+        - vendor/autoload.php
+
+    ignoreErrors:
+        # PHPUnit setUp() initializes properties but PHPStan doesn't know without phpstan-phpunit
+        - message: '#Class .* has an uninitialized property .*#'
+          path: tests/*

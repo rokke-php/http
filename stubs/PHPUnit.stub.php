@@ -21,6 +21,8 @@ abstract class Assert
 
     public static function assertNull(mixed $actual, string $message = ''): void {}
 
+    public static function assertNotNull(mixed $actual, string $message = ''): void {}
+
     public static function assertCount(int $expectedCount, \Countable|iterable $haystack, string $message = ''): void {}
 
     /** @param iterable<mixed> $haystack */

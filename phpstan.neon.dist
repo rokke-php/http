@@ -1,4 +1,8 @@
 
+includes:
+    - vendor/phpstan/phpstan-phpunit/extension.neon
+    - vendor/phpstan/phpstan-phpunit/rules.neon
+
 parameters:
     level: max
     paths:
@@ -23,7 +27,3 @@ parameters:
     bootstrapFiles:
         - vendor/autoload.php
 
-    ignoreErrors:
-        # PHPUnit setUp() initializes properties but PHPStan doesn't know without phpstan-phpunit
-        - message: '#Class .* has an uninitialized property .*#'
-          path: tests/*

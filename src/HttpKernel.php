@@ -19,6 +19,9 @@ use Rokke\Runtime\Build\ArgumentPlanCompiler;
 use Rokke\Runtime\Build\DiscoveryEngine;
 use Rokke\Runtime\Build\FactoryCompiler;
 use Rokke\Runtime\Build\FactoryRepository;
+use Rokke\Runtime\Build\InterceptorChainCompiler;
+use Rokke\Runtime\Build\InvokerInterceptorDescriptor;
+use Rokke\Runtime\Build\InvokerInterceptorModelBuilderPass;
 use Rokke\Runtime\Build\MiddlewareDescriptor;
 use Rokke\Runtime\Build\ModelBuilder;
 use Rokke\Runtime\Build\OperationDefinition;
@@ -79,6 +82,7 @@ final class HttpKernel
 			new OperationModelBuilderPass(),
 			new ServiceModelBuilderPass(),
 			new PipelineModelBuilderPass(),
+			new InvokerInterceptorModelBuilderPass(),
 		]);
 		$model = $modelBuilder->build($allCapabilities);
 
@@ -108,6 +112,9 @@ final class HttpKernel
 		$pipelineCompiler = new PipelineCompiler();
 		$pipeline         = $pipelineCompiler->compile($model->definitions(MiddlewareDescriptor::class));
 
+		$interceptorCompiler = new InterceptorChainCompiler();
+		$interceptorChain    = $interceptorCompiler->compile($model->definitions(InvokerInterceptorDescriptor::class));
+
 		$runtime = new CompiledRuntime(
 			pipelines: [0 => $pipeline],
 			handlers: $handlers,
@@ -115,6 +122,7 @@ final class HttpKernel
 			resultPlans: $resultPlans,
 			operations: OperationRepository::build($compiledOps),
 			artifacts: ArtifactRepository::build([CompiledRouteTree::class => $routeTree]),
+			interceptorChains: [0 => $interceptorChain],
 		);
 
 		$this->host = new HttpHost($runtime, $emitter);

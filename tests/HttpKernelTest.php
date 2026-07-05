@@ -11,7 +11,9 @@ use Rokke\Http\HttpHost;
 use Rokke\Http\HttpKernel;
 use Rokke\Http\HttpModule;
 use Rokke\Http\HttpNotFoundException;
+use Rokke\Http\Tests\Discovery\Fixture\PrefixInterceptor;
 use Rokke\Http\Tests\Discovery\Fixture\TaggingMiddleware;
+use Rokke\Runtime\Build\InvokerInterceptorCapability;
 use Rokke\Runtime\Build\MiddlewareCapability;
 use Rokke\Runtime\Build\OperationCapability;
 
@@ -274,5 +276,42 @@ final class HttpKernelTest extends TestCase
 		$result = $kernel->host()->handle('GET', '/ping');
 
 		$this->assertSame('[mw]pong', $result);
+	}
+
+	public function testRegisteredInterceptorIsInvokedForEveryRequest(): void
+	{
+		PrefixInterceptor::$invoked = false;
+
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new class () implements ModuleInterface {
+			public function register(ModuleBuilderInterface $builder): void
+			{
+				$builder->addCapability(new InvokerInterceptorCapability(PrefixInterceptor::class));
+			}
+		});
+		$kernel->build();
+
+		$kernel->host()->handle('GET', '/ping');
+
+		$this->assertTrue(PrefixInterceptor::$invoked);
+	}
+
+	public function testInterceptorRunsInsideMiddlewarePipeline(): void
+	{
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new class () implements ModuleInterface {
+			public function register(ModuleBuilderInterface $builder): void
+			{
+				$builder->addCapability(new MiddlewareCapability(TaggingMiddleware::class));
+				$builder->addCapability(new InvokerInterceptorCapability(PrefixInterceptor::class));
+			}
+		});
+		$kernel->build();
+
+		$result = $kernel->host()->handle('GET', '/ping');
+
+		$this->assertSame('[mw][ic]pong', $result);
 	}
 }

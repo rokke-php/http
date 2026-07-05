@@ -19,9 +19,12 @@ use Rokke\Runtime\Build\ArgumentPlanCompiler;
 use Rokke\Runtime\Build\DiscoveryEngine;
 use Rokke\Runtime\Build\FactoryCompiler;
 use Rokke\Runtime\Build\FactoryRepository;
+use Rokke\Runtime\Build\MiddlewareDescriptor;
 use Rokke\Runtime\Build\ModelBuilder;
 use Rokke\Runtime\Build\OperationDefinition;
 use Rokke\Runtime\Build\OperationModelBuilderPass;
+use Rokke\Runtime\Build\PipelineCompiler;
+use Rokke\Runtime\Build\PipelineModelBuilderPass;
 use Rokke\Runtime\Build\ResultPlanCompiler;
 use Rokke\Runtime\Build\ServiceDescriptor;
 use Rokke\Runtime\Build\ServiceModelBuilderPass;
@@ -75,6 +78,7 @@ final class HttpKernel
 			new HttpCapabilityPass(),
 			new OperationModelBuilderPass(),
 			new ServiceModelBuilderPass(),
+			new PipelineModelBuilderPass(),
 		]);
 		$model = $modelBuilder->build($allCapabilities);
 
@@ -101,8 +105,11 @@ final class HttpKernel
 			$compiledOps[]         = new CompiledOperation($definition->id, 0, $index, $index, $index);
 		}
 
+		$pipelineCompiler = new PipelineCompiler();
+		$pipeline         = $pipelineCompiler->compile($model->definitions(MiddlewareDescriptor::class));
+
 		$runtime = new CompiledRuntime(
-			pipelines: [],
+			pipelines: [0 => $pipeline],
 			handlers: $handlers,
 			argumentPlans: $argumentPlans,
 			resultPlans: $resultPlans,

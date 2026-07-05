@@ -37,6 +37,9 @@ abstract class Assert
 
     /** @param iterable<mixed> $haystack */
     public static function assertContains(mixed $needle, iterable $haystack, string $message = ''): void {}
+
+    /** @param iterable<mixed> $haystack */
+    public static function assertNotContains(mixed $needle, iterable $haystack, string $message = ''): void {}
 }
 
 abstract class TestCase extends Assert

@@ -22,8 +22,11 @@ use Rokke\Runtime\Build\FactoryRepository;
 use Rokke\Runtime\Build\InterceptorChainCompiler;
 use Rokke\Runtime\Build\InvokerInterceptorDescriptor;
 use Rokke\Runtime\Build\InvokerInterceptorModelBuilderPass;
+use Rokke\Runtime\Build\MaxValidationSourceCompiler;
 use Rokke\Runtime\Build\MiddlewareDescriptor;
+use Rokke\Runtime\Build\MinValidationSourceCompiler;
 use Rokke\Runtime\Build\ModelBuilder;
+use Rokke\Runtime\Build\NotBlankValidationSourceCompiler;
 use Rokke\Runtime\Build\OperationDefinition;
 use Rokke\Runtime\Build\OperationModelBuilderPass;
 use Rokke\Runtime\Build\PipelineCompiler;
@@ -31,6 +34,7 @@ use Rokke\Runtime\Build\PipelineModelBuilderPass;
 use Rokke\Runtime\Build\ResultPlanCompiler;
 use Rokke\Runtime\Build\ServiceDescriptor;
 use Rokke\Runtime\Build\ServiceModelBuilderPass;
+use Rokke\Runtime\Build\ValidationPlanCompiler;
 use Rokke\Runtime\Compiled\ArtifactRepository;
 use Rokke\Runtime\Compiled\CompiledOperation;
 use Rokke\Runtime\Compiled\CompiledRuntime;
@@ -96,17 +100,24 @@ final class HttpKernel
 			new RouteParameterArgumentSourceCompiler(),
 			new BodyArgumentSourceCompiler(),
 		]);
-		$resultCompiler = new ResultPlanCompiler([new JsonResultSourceCompiler()]);
-		$handlers       = [];
-		$argumentPlans  = [];
-		$resultPlans    = [];
-		$compiledOps    = [];
+		$resultCompiler     = new ResultPlanCompiler([new JsonResultSourceCompiler()]);
+		$validationCompiler = new ValidationPlanCompiler([
+			new NotBlankValidationSourceCompiler(),
+			new MinValidationSourceCompiler(),
+			new MaxValidationSourceCompiler(),
+		]);
+		$handlers        = [];
+		$argumentPlans   = [];
+		$resultPlans     = [];
+		$validationPlans = [];
+		$compiledOps     = [];
 
 		foreach ($model->definitions(OperationDefinition::class) as $index => $definition) {
-			$handlers[$index]      = $definition->handler;
-			$argumentPlans[$index] = $argCompiler->compile($definition->handler, $factories);
-			$resultPlans[$index]   = $resultCompiler->compile($definition->handler);
-			$compiledOps[]         = new CompiledOperation($definition->id, 0, $index, $index, $index);
+			$handlers[$index]        = $definition->handler;
+			$argumentPlans[$index]   = $argCompiler->compile($definition->handler, $factories);
+			$resultPlans[$index]     = $resultCompiler->compile($definition->handler);
+			$validationPlans[$index] = $validationCompiler->compile($definition->handler);
+			$compiledOps[]           = new CompiledOperation($definition->id, 0, $index, $index, $index, validationPlanId: $index);
 		}
 
 		$pipelineCompiler = new PipelineCompiler();
@@ -123,6 +134,7 @@ final class HttpKernel
 			operations: OperationRepository::build($compiledOps),
 			artifacts: ArtifactRepository::build([CompiledRouteTree::class => $routeTree]),
 			interceptorChains: [0 => $interceptorChain],
+			validationPlans: $validationPlans,
 		);
 
 		$this->host = new HttpHost($runtime, $emitter);

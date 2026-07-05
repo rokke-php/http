@@ -16,6 +16,7 @@ use Rokke\Http\Tests\Discovery\Fixture\TaggingMiddleware;
 use Rokke\Runtime\Build\InvokerInterceptorCapability;
 use Rokke\Runtime\Build\MiddlewareCapability;
 use Rokke\Runtime\Build\OperationCapability;
+use Rokke\Runtime\Exception\ValidationException;
 
 final class HttpKernelTest extends TestCase
 {
@@ -295,6 +296,37 @@ final class HttpKernelTest extends TestCase
 		$kernel->host()->handle('GET', '/ping');
 
 		$this->assertTrue(PrefixInterceptor::$invoked);
+	}
+
+	public function testValidParamsPassValidationAndReachHandler(): void
+	{
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->build();
+
+		$result = $kernel->host()->handle('GET', '/products', query: ['name' => 'Widget', 'price' => '25']);
+
+		$this->assertSame('product:Widget:25', $result);
+	}
+
+	public function testNotBlankValidationThrowsForEmptyParam(): void
+	{
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->build();
+
+		$this->expectException(ValidationException::class);
+		$kernel->host()->handle('GET', '/products', query: ['name' => '', 'price' => '25']);
+	}
+
+	public function testMinValidationThrowsForValueBelowThreshold(): void
+	{
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->build();
+
+		$this->expectException(ValidationException::class);
+		$kernel->host()->handle('GET', '/products', query: ['name' => 'Widget', 'price' => '0']);
 	}
 
 	public function testInterceptorRunsInsideMiddlewarePipeline(): void

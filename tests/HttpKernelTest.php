@@ -11,6 +11,8 @@ use Rokke\Http\HttpHost;
 use Rokke\Http\HttpKernel;
 use Rokke\Http\HttpModule;
 use Rokke\Http\HttpNotFoundException;
+use Rokke\Http\Tests\Discovery\Fixture\TaggingMiddleware;
+use Rokke\Runtime\Build\MiddlewareCapability;
 use Rokke\Runtime\Build\OperationCapability;
 
 final class HttpKernelTest extends TestCase
@@ -236,5 +238,41 @@ final class HttpKernelTest extends TestCase
 		$result = $kernel->host()->handle('GET', '/users/3');
 
 		$this->assertSame('user:3', $result);
+	}
+
+	public function testRegisteredMiddlewareIsInvokedForEveryRequest(): void
+	{
+		TaggingMiddleware::$invoked = false;
+
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new class () implements ModuleInterface {
+			public function register(ModuleBuilderInterface $builder): void
+			{
+				$builder->addCapability(new MiddlewareCapability(TaggingMiddleware::class));
+			}
+		});
+		$kernel->build();
+
+		$kernel->host()->handle('GET', '/ping');
+
+		$this->assertTrue(TaggingMiddleware::$invoked);
+	}
+
+	public function testMiddlewareCanWrapHandlerResult(): void
+	{
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new class () implements ModuleInterface {
+			public function register(ModuleBuilderInterface $builder): void
+			{
+				$builder->addCapability(new MiddlewareCapability(TaggingMiddleware::class));
+			}
+		});
+		$kernel->build();
+
+		$result = $kernel->host()->handle('GET', '/ping');
+
+		$this->assertSame('[mw]pong', $result);
 	}
 }

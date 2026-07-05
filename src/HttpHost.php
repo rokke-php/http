@@ -21,7 +21,7 @@ final class HttpHost
 	public function __construct(CompiledRuntime $runtime, ?EmitterInterface $emitter = null)
 	{
 		$this->routeTree      = $runtime->artifacts->get(CompiledRouteTree::class) ?? CompiledRouteTree::empty();
-		$this->engine         = new ExecutionEngine(new Invoker($runtime));
+		$this->engine         = new ExecutionEngine(new Invoker($runtime), runtime: $runtime);
 		$this->contextFactory = new HttpContextFactory();
 		$this->emitter        = $emitter ?? new JsonEmitter();
 	}

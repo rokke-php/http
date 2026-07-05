@@ -28,6 +28,9 @@ abstract class Assert
     /** @phpstan-assert array<mixed> $actual */
     public static function assertIsArray(mixed $actual, string $message = ''): void {}
 
+    /** @phpstan-assert string $actual */
+    public static function assertIsString(mixed $actual, string $message = ''): void {}
+
     public static function assertNotSame(mixed $expected, mixed $actual, string $message = ''): void {}
 
     /** @return never */

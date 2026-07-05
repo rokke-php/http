@@ -64,7 +64,20 @@ final class HttpKernelTest extends TestCase
 		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
-		$this->assertSame('created', $kernel->host()->handle('POST', '/users'));
+		$body = json_encode(['name' => 'Fernando', 'email' => 'f@rokke.dev']);
+		$this->assertIsString($body);
+		$this->assertSame('created:Fernando', $kernel->host()->handle('POST', '/users', $body));
+	}
+
+	public function testBodyIsDeserializedToCommandDto(): void
+	{
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->build();
+
+		$body = json_encode(['name' => 'Ana', 'email' => 'ana@rokke.dev']);
+		$this->assertIsString($body);
+		$this->assertSame('created:Ana', $kernel->host()->handle('POST', '/users', $body));
 	}
 
 	public function testHandleThrowsForUnregisteredRoute(): void

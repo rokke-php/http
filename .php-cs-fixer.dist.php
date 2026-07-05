@@ -22,6 +22,7 @@ return new Config()
 		'@PSR12' => true,
 		'@PSR12:risky' => true,
 		'@PHP8x4Migration' => true,
+		'new_with_parentheses' => true,
 		'nullable_type_declaration_for_default_null_value' => true,
 		'declare_strict_types' => true,
 		'ordered_imports' => [

@@ -146,4 +146,41 @@ final class HttpKernelTest extends TestCase
 
 		$this->assertSame('user:7', $kernel->host()->handle('GET', '/users/7'));
 	}
+
+	public function testHeaderIsPassedToHandler(): void
+	{
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->build();
+
+		$this->assertSame('header:hello', $kernel->host()->handle('GET', '/header', headers: ['x-value' => 'hello']));
+	}
+
+	public function testNullableHeaderIsNullWhenAbsent(): void
+	{
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->build();
+
+		$this->assertSame('hello:world', $kernel->host()->handle('GET', '/optional-header'));
+	}
+
+	public function testNullableHeaderResolvedWhenPresent(): void
+	{
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->build();
+
+		$this->assertSame('hello:Fernando', $kernel->host()->handle('GET', '/optional-header', headers: ['x-name' => 'Fernando']));
+	}
+
+	public function testRequiredHeaderAbsentThrowsAtRuntime(): void
+	{
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->build();
+
+		$this->expectException(\RuntimeException::class);
+		$kernel->host()->handle('GET', '/header');
+	}
 }

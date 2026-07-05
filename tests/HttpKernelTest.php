@@ -100,7 +100,7 @@ final class HttpKernelTest extends TestCase
 	{
 		$kernel = new HttpKernel();
 		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
-		$kernel->register(new HttpModule(__DIR__ . '/Fixture2', 'Rokke\Http\Tests\Fixture2'));
+		$kernel->register(new HttpModule(__DIR__ . '/Discovery/HealthFixture', 'Rokke\Http\Tests\Discovery\HealthFixture'));
 		$kernel->build();
 
 		$this->assertSame('pong', $kernel->host()->handle('GET', '/ping'));

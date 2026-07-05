@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Rokke\Http\Tests\Fixture2;
+namespace Rokke\Http\Tests\Discovery\HealthFixture;
 
 use Rokke\Http\Attribute\Get;
 use Rokke\Runtime\Contracts\OperationContextInterface;

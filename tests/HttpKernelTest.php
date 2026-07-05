@@ -211,4 +211,30 @@ final class HttpKernelTest extends TestCase
 		$this->expectException(\RuntimeException::class);
 		$kernel->host()->handle('GET', '/search');
 	}
+
+	public function testDtoReturnTypeIsSerializedToJson(): void
+	{
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->build();
+
+		$result = $kernel->host()->handle('GET', '/profile/5');
+
+		$this->assertIsString($result);
+		$decoded = json_decode($result, true);
+		$this->assertIsArray($decoded);
+		$this->assertSame(5, $decoded['id']);
+		$this->assertSame('Fernando', $decoded['name']);
+	}
+
+	public function testStringReturnTypePassesThroughUnchanged(): void
+	{
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->build();
+
+		$result = $kernel->host()->handle('GET', '/users/3');
+
+		$this->assertSame('user:3', $result);
+	}
 }

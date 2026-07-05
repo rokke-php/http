@@ -8,6 +8,7 @@ use Rokke\Contracts\Module\ModuleInterface;
 use Rokke\Http\Build\BodyArgumentSourceCompiler;
 use Rokke\Http\Build\HeaderArgumentSourceCompiler;
 use Rokke\Http\Build\HttpCapabilityPass;
+use Rokke\Http\Build\JsonResultSourceCompiler;
 use Rokke\Http\Build\QueryArgumentSourceCompiler;
 use Rokke\Http\Build\RouteCompiler;
 use Rokke\Http\Build\RouteDescriptor;
@@ -87,7 +88,7 @@ final class HttpKernel
 			new RouteParameterArgumentSourceCompiler(),
 			new BodyArgumentSourceCompiler(),
 		]);
-		$resultCompiler = new ResultPlanCompiler();
+		$resultCompiler = new ResultPlanCompiler([new JsonResultSourceCompiler()]);
 		$handlers       = [];
 		$argumentPlans  = [];
 		$resultPlans    = [];

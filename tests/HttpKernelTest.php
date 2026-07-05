@@ -183,4 +183,32 @@ final class HttpKernelTest extends TestCase
 		$this->expectException(\RuntimeException::class);
 		$kernel->host()->handle('GET', '/header');
 	}
+
+	public function testQueryStringParamIsResolved(): void
+	{
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->build();
+
+		$this->assertSame('search:rokke', $kernel->host()->handle('GET', '/search', query: ['term' => 'rokke']));
+	}
+
+	public function testQueryStringParamIsCastToInt(): void
+	{
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->build();
+
+		$this->assertSame('page:2,limit:15', $kernel->host()->handle('GET', '/paginate', query: ['page' => '2', 'per_page' => '15']));
+	}
+
+	public function testRequiredQueryParamAbsentThrowsAtRuntime(): void
+	{
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->build();
+
+		$this->expectException(\RuntimeException::class);
+		$kernel->host()->handle('GET', '/search');
+	}
 }

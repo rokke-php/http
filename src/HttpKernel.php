@@ -8,6 +8,7 @@ use Rokke\Contracts\Module\ModuleInterface;
 use Rokke\Http\Build\BodyArgumentSourceCompiler;
 use Rokke\Http\Build\HeaderArgumentSourceCompiler;
 use Rokke\Http\Build\HttpCapabilityPass;
+use Rokke\Http\Build\QueryArgumentSourceCompiler;
 use Rokke\Http\Build\RouteCompiler;
 use Rokke\Http\Build\RouteDescriptor;
 use Rokke\Http\Build\RouteParameterArgumentSourceCompiler;
@@ -82,6 +83,7 @@ final class HttpKernel
 		$factories      = FactoryRepository::build($model->definitions(ServiceDescriptor::class), new FactoryCompiler());
 		$argCompiler    = new ArgumentPlanCompiler([
 			new HeaderArgumentSourceCompiler(),
+			new QueryArgumentSourceCompiler(),
 			new RouteParameterArgumentSourceCompiler(),
 			new BodyArgumentSourceCompiler(),
 		]);

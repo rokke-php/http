@@ -28,8 +28,9 @@ final class HttpHost
 
 	/**
 	 * @param array<string, string> $headers
+	 * @param array<string, string> $query
 	 */
-	public function handle(string $method, string $path, string $body = '', array $headers = []): mixed
+	public function handle(string $method, string $path, string $body = '', array $headers = [], array $query = []): mixed
 	{
 		$match = $this->routeTree->match($method, $path);
 
@@ -38,7 +39,7 @@ final class HttpHost
 		}
 
 		$operation = new HttpOperation($match->operationId);
-		$context   = $this->contextFactory->fromMatch($match, headers: $headers, body: $body);
+		$context   = $this->contextFactory->fromMatch($match, headers: $headers, body: $body, query: $query);
 
 		return $this->engine->execute($operation, $context);
 	}

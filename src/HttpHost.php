@@ -26,7 +26,10 @@ final class HttpHost
 		$this->emitter        = $emitter ?? new JsonEmitter();
 	}
 
-	public function handle(string $method, string $path, string $body = ''): mixed
+	/**
+	 * @param array<string, string> $headers
+	 */
+	public function handle(string $method, string $path, string $body = '', array $headers = []): mixed
 	{
 		$match = $this->routeTree->match($method, $path);
 
@@ -35,7 +38,7 @@ final class HttpHost
 		}
 
 		$operation = new HttpOperation($match->operationId);
-		$context   = $this->contextFactory->fromMatch($match, body: $body);
+		$context   = $this->contextFactory->fromMatch($match, headers: $headers, body: $body);
 
 		return $this->engine->execute($operation, $context);
 	}

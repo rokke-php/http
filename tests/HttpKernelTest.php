@@ -115,4 +115,22 @@ final class HttpKernelTest extends TestCase
 		$this->expectException(HttpNotFoundException::class);
 		$kernel->host()->handle('GET', '/anything');
 	}
+
+	public function testRouteParameterIsPassedToHandler(): void
+	{
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->build();
+
+		$this->assertSame('user:42', $kernel->host()->handle('GET', '/users/42'));
+	}
+
+	public function testRouteParameterIsCastToInt(): void
+	{
+		$kernel = new HttpKernel();
+		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->build();
+
+		$this->assertSame('user:7', $kernel->host()->handle('GET', '/users/7'));
+	}
 }

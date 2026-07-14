@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Rokke\Http\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Rokke\Contracts\Module\ModuleBuilderInterface;
-use Rokke\Contracts\Module\ModuleInterface;
+use Rokke\Contracts\Extension\ExtensionBuilderInterface;
+use Rokke\Contracts\Extension\ExtensionInterface;
+use Rokke\Http\HttpExtension;
 use Rokke\Http\HttpHost;
 use Rokke\Http\HttpKernel;
-use Rokke\Http\HttpModule;
 use Rokke\Http\HttpNotFoundException;
 use Rokke\Runtime\Build\OperationCapability;
 use Rokke\Runtime\Exception\ValidationException;
@@ -22,7 +22,7 @@ final class HttpKernelTest extends TestCase
 	public function testRegisterReturnsSelf(): void
 	{
 		$kernel = new HttpKernel();
-		$module = new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS);
+		$module = new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS);
 
 		$this->assertSame($kernel, $kernel->register($module));
 	}
@@ -53,7 +53,7 @@ final class HttpKernelTest extends TestCase
 	public function testHandleGetsRouteFromDiscoveredHandler(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
 		$this->assertSame('pong', $kernel->host()->handle('GET', '/ping'));
@@ -62,7 +62,7 @@ final class HttpKernelTest extends TestCase
 	public function testHandlePostRouteFromDiscoveredHandler(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
 		$body = json_encode(['name' => 'Fernando', 'email' => 'f@rokke.dev']);
@@ -73,7 +73,7 @@ final class HttpKernelTest extends TestCase
 	public function testBodyIsDeserializedToCommandDto(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
 		$body = json_encode(['name' => 'Ana', 'email' => 'ana@rokke.dev']);
@@ -84,7 +84,7 @@ final class HttpKernelTest extends TestCase
 	public function testHandleThrowsForUnregisteredRoute(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
 		$this->expectException(HttpNotFoundException::class);
@@ -94,9 +94,9 @@ final class HttpKernelTest extends TestCase
 	public function testExplicitCapabilitiesFromOtherModulesAreCompiled(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
-		$kernel->register(new class () implements ModuleInterface {
-			public function register(ModuleBuilderInterface $builder): void
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new class () implements ExtensionInterface {
+			public function register(ExtensionBuilderInterface $builder): void
 			{
 				$builder->addCapability(new OperationCapability(
 					'extra',
@@ -113,8 +113,8 @@ final class HttpKernelTest extends TestCase
 	public function testMultipleHttpModulesRoutesCoexist(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
-		$kernel->register(new HttpModule(__DIR__ . '/Discovery/HealthFixture', 'Rokke\Http\Tests\Discovery\HealthFixture'));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(__DIR__ . '/Discovery/HealthFixture', 'Rokke\Http\Tests\Discovery\HealthFixture'));
 		$kernel->build();
 
 		$this->assertSame('pong', $kernel->host()->handle('GET', '/ping'));
@@ -133,7 +133,7 @@ final class HttpKernelTest extends TestCase
 	public function testRouteParameterIsPassedToHandler(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
 		$this->assertSame('user:42', $kernel->host()->handle('GET', '/users/42'));
@@ -142,7 +142,7 @@ final class HttpKernelTest extends TestCase
 	public function testRouteParameterIsCastToInt(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
 		$this->assertSame('user:7', $kernel->host()->handle('GET', '/users/7'));
@@ -151,7 +151,7 @@ final class HttpKernelTest extends TestCase
 	public function testHeaderIsPassedToHandler(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
 		$this->assertSame('header:hello', $kernel->host()->handle('GET', '/header', headers: ['x-value' => 'hello']));
@@ -160,7 +160,7 @@ final class HttpKernelTest extends TestCase
 	public function testNullableHeaderIsNullWhenAbsent(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
 		$this->assertSame('hello:world', $kernel->host()->handle('GET', '/optional-header'));
@@ -169,7 +169,7 @@ final class HttpKernelTest extends TestCase
 	public function testNullableHeaderResolvedWhenPresent(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
 		$this->assertSame('hello:Fernando', $kernel->host()->handle('GET', '/optional-header', headers: ['x-name' => 'Fernando']));
@@ -178,7 +178,7 @@ final class HttpKernelTest extends TestCase
 	public function testRequiredHeaderAbsentThrowsAtRuntime(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
 		$this->expectException(\RuntimeException::class);
@@ -188,7 +188,7 @@ final class HttpKernelTest extends TestCase
 	public function testQueryStringParamIsResolved(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
 		$this->assertSame('search:rokke', $kernel->host()->handle('GET', '/search', query: ['term' => 'rokke']));
@@ -197,7 +197,7 @@ final class HttpKernelTest extends TestCase
 	public function testQueryStringParamIsCastToInt(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
 		$this->assertSame('page:2,limit:15', $kernel->host()->handle('GET', '/paginate', query: ['page' => '2', 'per_page' => '15']));
@@ -206,7 +206,7 @@ final class HttpKernelTest extends TestCase
 	public function testRequiredQueryParamAbsentThrowsAtRuntime(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
 		$this->expectException(\RuntimeException::class);
@@ -216,7 +216,7 @@ final class HttpKernelTest extends TestCase
 	public function testDtoReturnTypeIsSerializedToJson(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
 		$result = $kernel->host()->handle('GET', '/profile/5');
@@ -231,7 +231,7 @@ final class HttpKernelTest extends TestCase
 	public function testStringReturnTypePassesThroughUnchanged(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
 		$result = $kernel->host()->handle('GET', '/users/3');
@@ -242,7 +242,7 @@ final class HttpKernelTest extends TestCase
 	public function testValidParamsPassValidationAndReachHandler(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
 		$result = $kernel->host()->handle('GET', '/products', query: ['name' => 'Widget', 'price' => '25']);
@@ -253,7 +253,7 @@ final class HttpKernelTest extends TestCase
 	public function testNotBlankValidationThrowsForEmptyParam(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
 		$this->expectException(ValidationException::class);
@@ -263,7 +263,7 @@ final class HttpKernelTest extends TestCase
 	public function testMinValidationThrowsForValueBelowThreshold(): void
 	{
 		$kernel = new HttpKernel();
-		$kernel->register(new HttpModule(self::FIXTURE_DIR, self::FIXTURE_NS));
+		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
 		$kernel->build();
 
 		$this->expectException(ValidationException::class);

@@ -9,7 +9,6 @@ use Rokke\Http\Emitter\EmitterInterface;
 use Rokke\Http\Emitter\JsonEmitter;
 use Rokke\Runtime\Compiled\CompiledRuntime;
 use Rokke\Runtime\Engine\ExecutionEngine;
-use Rokke\Runtime\Engine\Invoker;
 
 final class HttpHost
 {
@@ -21,7 +20,7 @@ final class HttpHost
 	public function __construct(CompiledRuntime $runtime, ?EmitterInterface $emitter = null)
 	{
 		$this->routeTree      = $runtime->artifacts->get(CompiledRouteTree::class) ?? CompiledRouteTree::empty();
-		$this->engine         = new ExecutionEngine(new Invoker($runtime), runtime: $runtime);
+		$this->engine         = new ExecutionEngine($runtime);
 		$this->contextFactory = new HttpContextFactory();
 		$this->emitter        = $emitter ?? new JsonEmitter();
 	}

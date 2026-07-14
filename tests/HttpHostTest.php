@@ -13,6 +13,8 @@ use Rokke\Http\HttpNotFoundException;
 use Rokke\Runtime\Compiled\Arguments\ArgumentResolutionPlan;
 use Rokke\Runtime\Compiled\Arguments\ContextArgumentInstruction;
 use Rokke\Runtime\Compiled\ArtifactRepository;
+use Rokke\Runtime\Compiled\CompiledExecutionPipeline;
+use Rokke\Runtime\Compiled\CompiledInterceptorPipeline;
 use Rokke\Runtime\Compiled\CompiledOperation;
 use Rokke\Runtime\Compiled\CompiledRuntime;
 use Rokke\Runtime\Compiled\OperationRepository;
@@ -30,19 +32,19 @@ final class HttpHostTest extends TestCase
 	 */
 	private function buildRuntime(array $routes): CompiledRuntime
 	{
-		$descriptors  = [];
-		$handlers     = [];
+		$descriptors   = [];
+		$handlers      = [];
 		$argumentPlans = [];
-		$resultPlans  = [];
-		$compiledOps  = [];
-		$i            = 0;
+		$resultPlans   = [];
+		$compiledOps   = [];
+		$i             = 0;
 
 		foreach ($routes as $operationId => $route) {
-			$descriptors[]    = new RouteDescriptor($route['method'], $route['path'], $operationId);
-			$handlers[$i]     = $route['handler'];
+			$descriptors[]     = new RouteDescriptor($route['method'], $route['path'], $operationId);
+			$handlers[$i]      = $route['handler'];
 			$argumentPlans[$i] = new ArgumentResolutionPlan([new ContextArgumentInstruction()]);
-			$resultPlans[$i]  = new ResultResolutionPlan(new ObjectResultInstruction(\stdClass::class));
-			$compiledOps[]    = new CompiledOperation(
+			$resultPlans[$i]   = new ResultResolutionPlan(new ObjectResultInstruction(\stdClass::class));
+			$compiledOps[]     = new CompiledOperation(
 				id: $operationId,
 				pipelineId: 0,
 				handlerId: $i,
@@ -55,11 +57,17 @@ final class HttpHostTest extends TestCase
 		$compiler  = new RouteCompiler();
 		$routeTree = $compiler->compile($descriptors);
 
-		return new CompiledRuntime(
-			pipelines: [],
+		$executionPipeline = new CompiledExecutionPipeline(
 			handlers: $handlers,
 			argumentPlans: $argumentPlans,
 			resultPlans: $resultPlans,
+			behaviorPipelines: [],
+			validationPlans: [],
+		);
+
+		return new CompiledRuntime(
+			executionPipeline: $executionPipeline,
+			interceptorPipeline: CompiledInterceptorPipeline::empty(),
 			operations: OperationRepository::build($compiledOps),
 			artifacts: ArtifactRepository::build([
 				CompiledRouteTree::class => $routeTree,
@@ -146,10 +154,14 @@ final class HttpHostTest extends TestCase
 	public function testHandleWithNoRouteTreeThrows404ForAnyRoute(): void
 	{
 		$runtime = new CompiledRuntime(
-			pipelines: [],
-			handlers: [],
-			argumentPlans: [],
-			resultPlans: [],
+			executionPipeline: new CompiledExecutionPipeline(
+				handlers: [],
+				argumentPlans: [],
+				resultPlans: [],
+				behaviorPipelines: [],
+				validationPlans: [],
+			),
+			interceptorPipeline: CompiledInterceptorPipeline::empty(),
 			artifacts: ArtifactRepository::empty(),
 		);
 

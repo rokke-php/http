@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Rokke\Http;
 
-use Rokke\Contracts\Module\ModuleInterface;
+use Rokke\Contracts\Extension\ExtensionInterface;
 use Rokke\Http\Build\BodyArgumentSourceCompiler;
 use Rokke\Http\Build\HeaderArgumentSourceCompiler;
 use Rokke\Http\Build\HttpCapabilityPass;
@@ -36,8 +36,8 @@ use Rokke\Runtime\Compiled\CompiledInterceptorPipeline;
 use Rokke\Runtime\Compiled\CompiledOperation;
 use Rokke\Runtime\Compiled\CompiledRuntime;
 use Rokke\Runtime\Compiled\OperationRepository;
-use Rokke\Runtime\Module\ModuleBuilder;
-use Rokke\Runtime\Module\ModuleSystem;
+use Rokke\Runtime\Extension\ExtensionBuilder;
+use Rokke\Runtime\Extension\ExtensionRegistry;
 
 /**
  * Composition root for HTTP applications built from modules.
@@ -54,29 +54,29 @@ use Rokke\Runtime\Module\ModuleSystem;
  */
 final class HttpKernel
 {
-	private ModuleSystem $modules;
+	private ExtensionRegistry $extensions;
 	private ?HttpHost $host = null;
 
 	public function __construct()
 	{
-		$this->modules = new ModuleSystem();
+		$this->extensions = new ExtensionRegistry();
 	}
 
-	public function register(ModuleInterface $module): self
+	public function register(ExtensionInterface $extension): self
 	{
-		$this->modules->register($module);
+		$this->extensions->register($extension);
 
 		return $this;
 	}
 
 	public function build(?EmitterInterface $emitter = null): self
 	{
-		$moduleBuilder = new ModuleBuilder();
-		$this->modules->buildAll($moduleBuilder);
+		$extensionBuilder = new ExtensionBuilder();
+		$this->extensions->buildAll($extensionBuilder);
 
 		$engine          = new DiscoveryEngine();
-		$discovered      = $engine->run($moduleBuilder->getDiscoveryProviders());
-		$allCapabilities = [...$moduleBuilder->getCapabilities(), ...$discovered];
+		$discovered      = $engine->run($extensionBuilder->getDiscoveryProviders());
+		$allCapabilities = [...$extensionBuilder->getCapabilities(), ...$discovered];
 
 		$modelBuilder = new ModelBuilder([
 			new HttpCapabilityPass(),

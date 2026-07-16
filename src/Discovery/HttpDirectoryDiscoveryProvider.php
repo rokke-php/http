@@ -17,7 +17,7 @@ use Rokke\Runtime\Build\OperationCapability;
  * For each class bearing #[Get], #[Post], #[Put], #[Patch], or #[Delete],
  * two capabilities are emitted:
  *   - HttpCapability  — registers the route in the compiled route tree
- *   - OperationCapability — registers the invokable handler for execution
+ *   - OperationCapability — registers the handler class-string for compilation
  *
  * Files without an HTTP attribute are silently skipped.
  */
@@ -49,18 +49,17 @@ final class HttpDirectoryDiscoveryProvider implements DiscoveryProviderInterface
 				continue;
 			}
 
-			$attr        = $attrs[0]->newInstance();
-			$operationId = $this->operationId($class);
-			$instance    = new $class();
-
-			if (!is_callable($instance)) {
+			if (!$reflection->hasMethod('__invoke') || !$reflection->getMethod('__invoke')->isPublic()) {
 				throw new \InvalidArgumentException(
-					"Handler {$class} has an HTTP attribute but does not declare an __invoke method.",
+					"Handler {$class} has an HTTP attribute but does not declare a public __invoke() method.",
 				);
 			}
 
+			$attr        = $attrs[0]->newInstance();
+			$operationId = $this->operationId($class);
+
 			$capabilities[] = new HttpCapability($attr->method(), $attr->path, $operationId);
-			$capabilities[] = new OperationCapability($operationId, $operationId, $instance);
+			$capabilities[] = new OperationCapability($operationId, $operationId, $class);
 		}
 
 		return $capabilities;

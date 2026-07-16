@@ -14,6 +14,14 @@ use Rokke\Http\HttpNotFoundException;
 use Rokke\Runtime\Build\OperationCapability;
 use Rokke\Runtime\Exception\ValidationException;
 
+final class ExtraHandler
+{
+	public function __invoke(): string
+	{
+		return 'extra-result';
+	}
+}
+
 final class HttpKernelTest extends TestCase
 {
 	private const FIXTURE_DIR = __DIR__ . '/Discovery/Fixture';
@@ -101,7 +109,7 @@ final class HttpKernelTest extends TestCase
 				$builder->addCapability(new OperationCapability(
 					'extra',
 					'Extra',
-					static fn (): string => 'extra-result',
+					ExtraHandler::class,
 				));
 			}
 		});

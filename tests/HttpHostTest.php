@@ -10,6 +10,8 @@ use Rokke\Http\Build\RouteDescriptor;
 use Rokke\Http\Compiled\CompiledRouteTree;
 use Rokke\Http\HttpHost;
 use Rokke\Http\HttpNotFoundException;
+use Rokke\Runtime\Build\CompiledFactory;
+use Rokke\Runtime\Build\FactoryRepository;
 use Rokke\Runtime\Compiled\Arguments\ArgumentResolutionPlan;
 use Rokke\Runtime\Compiled\Arguments\ContextArgumentInstruction;
 use Rokke\Runtime\Compiled\ArtifactRepository;
@@ -22,32 +24,115 @@ use Rokke\Runtime\Compiled\Results\ObjectResultInstruction;
 use Rokke\Runtime\Compiled\Results\ResultResolutionPlan;
 use Rokke\Runtime\Contracts\OperationContextInterface;
 
+// ── Fixture handlers ──────────────────────────────────────────────────────────
+
+final class HostPongHandler
+{
+	public function __invoke(OperationContextInterface $ctx): string
+	{
+		return 'pong';
+	}
+}
+
+final class HostListHandler
+{
+	public function __invoke(OperationContextInterface $ctx): string
+	{
+		return 'list';
+	}
+}
+
+final class HostCreatedHandler
+{
+	public function __invoke(OperationContextInterface $ctx): string
+	{
+		return 'created';
+	}
+}
+
+final class HostShowHandler
+{
+	public function __invoke(OperationContextInterface $ctx): string
+	{
+		return 'show';
+	}
+}
+
+final class HostDeletedHandler
+{
+	public function __invoke(OperationContextInterface $ctx): string
+	{
+		return 'deleted';
+	}
+}
+
+final class HostIntResultHandler
+{
+	public function __invoke(OperationContextInterface $ctx): int
+	{
+		return 42;
+	}
+}
+
+final class HostIdFromParamsHandler
+{
+	public function __invoke(OperationContextInterface $ctx): string
+	{
+		$params = $ctx->metadata('params');
+		$id     = is_array($params) ? ($params['id'] ?? null) : null;
+
+		return is_string($id) ? $id : '';
+	}
+}
+
+final class HostPostCommentParamsHandler
+{
+	public function __invoke(OperationContextInterface $ctx): string
+	{
+		$params    = $ctx->metadata('params');
+		$postId    = is_array($params) ? ($params['postId'] ?? null) : null;
+		$commentId = is_array($params) ? ($params['commentId'] ?? null) : null;
+
+		return (is_string($postId) ? $postId : '') . ':' . (is_string($commentId) ? $commentId : '');
+	}
+}
+
+final class HostCheckEmptyParamsHandler
+{
+	public function __invoke(OperationContextInterface $ctx): string
+	{
+		$params = $ctx->metadata('params');
+
+		return is_array($params) && $params === [] ? 'empty' : 'non-empty';
+	}
+}
+
+// ── Test ──────────────────────────────────────────────────────────────────────
+
 final class HttpHostTest extends TestCase
 {
-	// ── Fixture ───────────────────────────────────────────────────────────────
-
 	/**
-	 * @param array<string, array{method: string, path: string, handler: callable}> $routes
-	 *   Keys are operationIds; values describe the HTTP route and handler.
+	 * @param array<string, array{method: string, path: string, handler: class-string}> $routes
+	 *   Keys are operationIds; values describe the HTTP route and handler class.
 	 */
 	private function buildRuntime(array $routes): CompiledRuntime
 	{
-		$descriptors   = [];
-		$handlers      = [];
-		$argumentPlans = [];
-		$resultPlans   = [];
-		$compiledOps   = [];
-		$i             = 0;
+		$routeDescriptors = [];
+		$factoryList      = [];
+		$argumentPlans    = [];
+		$resultPlans      = [];
+		$compiledOps      = [];
+		$i                = 0;
 
 		foreach ($routes as $operationId => $route) {
-			$descriptors[]     = new RouteDescriptor($route['method'], $route['path'], $operationId);
-			$handlers[$i]      = $route['handler'];
-			$argumentPlans[$i] = new ArgumentResolutionPlan([new ContextArgumentInstruction()]);
-			$resultPlans[$i]   = new ResultResolutionPlan(new ObjectResultInstruction(\stdClass::class));
-			$compiledOps[]     = new CompiledOperation(
+			$routeDescriptors[] = new RouteDescriptor($route['method'], $route['path'], $operationId);
+			$factoryList[$i]    = new CompiledFactory($route['handler']);
+			$argumentPlans[$i]  = new ArgumentResolutionPlan([new ContextArgumentInstruction()]);
+			$resultPlans[$i]    = new ResultResolutionPlan(new ObjectResultInstruction(\stdClass::class));
+			$compiledOps[]      = new CompiledOperation(
 				id: $operationId,
 				pipelineId: 0,
-				handlerId: $i,
+				factoryId: $i,
 				argumentPlanId: $i,
 				resultPlanId: $i,
 			);
@@ -55,10 +140,10 @@ final class HttpHostTest extends TestCase
 		}
 
 		$compiler  = new RouteCompiler();
-		$routeTree = $compiler->compile($descriptors);
+		$routeTree = $compiler->compile($routeDescriptors);
 
 		$executionPipeline = new CompiledExecutionPipeline(
-			handlers: $handlers,
+			factories: FactoryRepository::fromDescriptors($factoryList),
 			argumentPlans: $argumentPlans,
 			resultPlans: $resultPlans,
 			behaviorPipelines: [],
@@ -80,7 +165,7 @@ final class HttpHostTest extends TestCase
 	public function testHandleDispatchesMatchedRoute(): void
 	{
 		$runtime = $this->buildRuntime([
-			'ping' => ['method' => 'GET', 'path' => '/ping', 'handler' => fn (OperationContextInterface $ctx): string => 'pong'],
+			'ping' => ['method' => 'GET', 'path' => '/ping', 'handler' => HostPongHandler::class],
 		]);
 
 		$host = new HttpHost($runtime);
@@ -91,7 +176,7 @@ final class HttpHostTest extends TestCase
 	public function testHandleThrowsForUnmatchedPath(): void
 	{
 		$runtime = $this->buildRuntime([
-			'ping' => ['method' => 'GET', 'path' => '/ping', 'handler' => fn (OperationContextInterface $ctx): string => 'pong'],
+			'ping' => ['method' => 'GET', 'path' => '/ping', 'handler' => HostPongHandler::class],
 		]);
 
 		$host = new HttpHost($runtime);
@@ -103,7 +188,7 @@ final class HttpHostTest extends TestCase
 	public function testHandleThrowsForWrongMethod(): void
 	{
 		$runtime = $this->buildRuntime([
-			'users.list' => ['method' => 'GET', 'path' => '/users', 'handler' => fn (OperationContextInterface $ctx): string => 'list'],
+			'users.list' => ['method' => 'GET', 'path' => '/users', 'handler' => HostListHandler::class],
 		]);
 
 		$host = new HttpHost($runtime);
@@ -115,7 +200,7 @@ final class HttpHostTest extends TestCase
 	public function testHandleReturnsOperationResult(): void
 	{
 		$runtime = $this->buildRuntime([
-			'users.create' => ['method' => 'POST', 'path' => '/users', 'handler' => fn (OperationContextInterface $ctx): int => 42],
+			'users.create' => ['method' => 'POST', 'path' => '/users', 'handler' => HostIntResultHandler::class],
 		]);
 
 		$host = new HttpHost($runtime);
@@ -126,10 +211,10 @@ final class HttpHostTest extends TestCase
 	public function testHandleRoutesCorrectOperationFromMany(): void
 	{
 		$runtime = $this->buildRuntime([
-			'users.list'   => ['method' => 'GET',    'path' => '/users',      'handler' => fn (OperationContextInterface $ctx): string => 'list'],
-			'users.create' => ['method' => 'POST',   'path' => '/users',      'handler' => fn (OperationContextInterface $ctx): string => 'created'],
-			'users.show'   => ['method' => 'GET',    'path' => '/users/{id}', 'handler' => fn (OperationContextInterface $ctx): string => 'show'],
-			'users.delete' => ['method' => 'DELETE', 'path' => '/users/{id}', 'handler' => fn (OperationContextInterface $ctx): string => 'deleted'],
+			'users.list'   => ['method' => 'GET',    'path' => '/users',      'handler' => HostListHandler::class],
+			'users.create' => ['method' => 'POST',   'path' => '/users',      'handler' => HostCreatedHandler::class],
+			'users.show'   => ['method' => 'GET',    'path' => '/users/{id}', 'handler' => HostShowHandler::class],
+			'users.delete' => ['method' => 'DELETE', 'path' => '/users/{id}', 'handler' => HostDeletedHandler::class],
 		]);
 
 		$host = new HttpHost($runtime);
@@ -143,7 +228,7 @@ final class HttpHostTest extends TestCase
 	public function testHandleIsMethodCaseInsensitive(): void
 	{
 		$runtime = $this->buildRuntime([
-			'ping' => ['method' => 'GET', 'path' => '/ping', 'handler' => fn (OperationContextInterface $ctx): string => 'pong'],
+			'ping' => ['method' => 'GET', 'path' => '/ping', 'handler' => HostPongHandler::class],
 		]);
 
 		$host = new HttpHost($runtime);
@@ -155,7 +240,7 @@ final class HttpHostTest extends TestCase
 	{
 		$runtime = new CompiledRuntime(
 			executionPipeline: new CompiledExecutionPipeline(
-				handlers: [],
+				factories: FactoryRepository::empty(),
 				argumentPlans: [],
 				resultPlans: [],
 				behaviorPipelines: [],
@@ -177,12 +262,7 @@ final class HttpHostTest extends TestCase
 			'users.show' => [
 				'method'  => 'GET',
 				'path'    => '/users/{id}',
-				'handler' => static function (OperationContextInterface $ctx): string {
-					$params = $ctx->metadata('params');
-					$id     = is_array($params) ? ($params['id'] ?? null) : null;
-
-					return is_string($id) ? $id : '';
-				},
+				'handler' => HostIdFromParamsHandler::class,
 			],
 		]);
 
@@ -197,13 +277,7 @@ final class HttpHostTest extends TestCase
 			'comments.show' => [
 				'method'  => 'GET',
 				'path'    => '/posts/{postId}/comments/{commentId}',
-				'handler' => static function (OperationContextInterface $ctx): string {
-					$params    = $ctx->metadata('params');
-					$postId    = is_array($params) ? ($params['postId'] ?? null) : null;
-					$commentId = is_array($params) ? ($params['commentId'] ?? null) : null;
-
-					return (is_string($postId) ? $postId : '') . ':' . (is_string($commentId) ? $commentId : '');
-				},
+				'handler' => HostPostCommentParamsHandler::class,
 			],
 		]);
 
@@ -218,11 +292,7 @@ final class HttpHostTest extends TestCase
 			'ping' => [
 				'method'  => 'GET',
 				'path'    => '/ping',
-				'handler' => static function (OperationContextInterface $ctx): string {
-					$params = $ctx->metadata('params');
-
-					return is_array($params) && $params === [] ? 'empty' : 'non-empty';
-				},
+				'handler' => HostCheckEmptyParamsHandler::class,
 			],
 		]);
 
@@ -234,7 +304,7 @@ final class HttpHostTest extends TestCase
 	public function testHttpNotFoundExceptionCarriesMethodAndPath(): void
 	{
 		$runtime = $this->buildRuntime([
-			'ping' => ['method' => 'GET', 'path' => '/ping', 'handler' => fn (OperationContextInterface $ctx): string => 'pong'],
+			'ping' => ['method' => 'GET', 'path' => '/ping', 'handler' => HostPongHandler::class],
 		]);
 
 		$host = new HttpHost($runtime);

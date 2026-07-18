@@ -19,7 +19,6 @@ use Rokke\Runtime\Build\ArgumentPlanCompiler;
 use Rokke\Runtime\Build\DiscoveryEngine;
 use Rokke\Runtime\Build\FactoryCompiler;
 use Rokke\Runtime\Build\FactoryRepository;
-use Rokke\Runtime\Build\HandlerCompiler;
 use Rokke\Runtime\Build\MaxValidationSourceCompiler;
 use Rokke\Runtime\Build\MinValidationSourceCompiler;
 use Rokke\Runtime\Build\ModelBuilder;
@@ -89,8 +88,24 @@ final class HttpKernel
 		$routeCompiler = new RouteCompiler();
 		$routeTree     = $routeCompiler->compile($model->definitions(RouteDescriptor::class));
 
-		$factories      = FactoryRepository::build($model->definitions(ServiceDescriptor::class), new FactoryCompiler());
-		$handlerCompiler   = new HandlerCompiler();
+		$serviceDescriptors = $model->definitions(ServiceDescriptor::class);
+		$registeredImpls    = array_map(static fn (ServiceDescriptor $d): string => $d->implementation, $serviceDescriptors);
+		$handlerDescriptors = [];
+
+		foreach ($model->definitions(OperationDefinition::class) as $definition) {
+			$class = $definition->handler;
+			if (!in_array($class, $registeredImpls, true)) {
+				$reflection = new \ReflectionClass($class);
+				if (!$reflection->hasMethod('__invoke') || !$reflection->getMethod('__invoke')->isPublic()) {
+					throw new \RuntimeException("Handler {$class} must declare a public __invoke() method.");
+				}
+				$handlerDescriptors[] = new ServiceDescriptor($class, $class, [$class]);
+				$registeredImpls[]    = $class;
+			}
+		}
+
+		$factories = FactoryRepository::build([...$serviceDescriptors, ...$handlerDescriptors], new FactoryCompiler());
+
 		$argCompiler    = new ArgumentPlanCompiler([
 			new HeaderArgumentSourceCompiler(),
 			new QueryArgumentSourceCompiler(),
@@ -103,7 +118,6 @@ final class HttpKernel
 			new MinValidationSourceCompiler(),
 			new MaxValidationSourceCompiler(),
 		]);
-		$handlers          = [];
 		$argumentPlans     = [];
 		$resultPlans       = [];
 		$validationPlans   = [];
@@ -111,7 +125,8 @@ final class HttpKernel
 		$compiledOps       = [];
 
 		foreach ($model->definitions(OperationDefinition::class) as $index => $definition) {
-			$handlers[$index]        = $handlerCompiler->compile($definition->handler, $factories);
+			$factoryId               = $factories->id($definition->handler)
+				?? throw new \RuntimeException("Handler {$definition->handler} not found in factory repository.");
 			$argumentPlans[$index]   = $argCompiler->compile($definition->handler, $factories);
 			$resultPlans[$index]     = $resultCompiler->compile($definition->handler);
 			$validationPlans[$index] = $validationCompiler->compile($definition->handler);
@@ -128,7 +143,7 @@ final class HttpKernel
 			$compiledOps[] = new CompiledOperation(
 				id: $definition->id,
 				pipelineId: 0,
-				handlerId: $index,
+				factoryId: $factoryId,
 				argumentPlanId: $index,
 				resultPlanId: $index,
 				behaviorPipelineId: $behaviorPipelineId,
@@ -137,7 +152,7 @@ final class HttpKernel
 		}
 
 		$executionPipeline = new CompiledExecutionPipeline(
-			handlers: $handlers,
+			factories: $factories,
 			argumentPlans: $argumentPlans,
 			resultPlans: $resultPlans,
 			behaviorPipelines: $behaviorPipelines,

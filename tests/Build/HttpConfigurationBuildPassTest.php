@@ -64,4 +64,21 @@ final class HttpConfigurationBuildPassTest extends TestCase
 
 		$this->assertCount(1, $results);
 	}
+
+	public function testProcessMapsAllDescriptors(): void
+	{
+		$model = new ApplicationModel();
+		$model->add(new HttpConfigurationDescriptor(host: '0.0.0.0', port: 8080));
+		$model->add(new HttpConfigurationDescriptor(host: '127.0.0.1', port: 9000));
+
+		$results = $this->pass->process($model);
+
+		$this->assertCount(2, $results);
+		$this->assertInstanceOf(HttpConfiguration::class, $results[0]);
+		$this->assertInstanceOf(HttpConfiguration::class, $results[1]);
+		$this->assertSame('0.0.0.0', $results[0]->host);
+		$this->assertSame(8080, $results[0]->port);
+		$this->assertSame('127.0.0.1', $results[1]->host);
+		$this->assertSame(9000, $results[1]->port);
+	}
 }

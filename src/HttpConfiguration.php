@@ -6,8 +6,8 @@ namespace Rokke\Http;
 
 final readonly class HttpConfiguration
 {
-    public function __construct(
-        public string $host,
-        public int    $port,
-    ) {}
+	public function __construct(
+		public string $host,
+		public int    $port,
+	) {}
 }

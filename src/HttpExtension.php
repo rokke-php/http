@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Rokke\Http;
 
-use Rokke\Contracts\Extension\ExtensionBuildInterface;
 use Rokke\Contracts\Extension\ExtensionBuilderInterface;
+use Rokke\Contracts\Extension\ExtensionBuildInterface;
 use Rokke\Contracts\Extension\ExtensionInterface;
 use Rokke\Http\Build\HttpConfigurationBuildPass;
 use Rokke\Http\Build\HttpConfigurationDescriptor;

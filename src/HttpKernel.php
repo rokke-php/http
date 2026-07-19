@@ -165,17 +165,8 @@ final class HttpKernel
 			validationPlans: $validationPlans,
 		);
 
-		// Run extension build passes and assemble configuration repository.
-		// Build pass types are deduplicated so that multiple extensions of the
-		// same type (e.g. two HttpExtensions) do not run the same pass twice.
 		$configuredArtifacts = [];
-		$seenPassTypes       = [];
 		foreach ($this->extensions->getBuildPasses() as $pass) {
-			$passType = $pass::class;
-			if (in_array($passType, $seenPassTypes, true)) {
-				continue;
-			}
-			$seenPassTypes[] = $passType;
 			foreach ($pass->process($model) as $artifact) {
 				$configuredArtifacts[] = $artifact;
 			}

@@ -12,12 +12,15 @@ final class HttpConfigurationBuildPass implements ExtensionBuildPassInterface
 {
     public function process(ApplicationModel $model): array
     {
-        return array_map(
-            static fn (HttpConfigurationDescriptor $d) => new HttpConfiguration(
-                host: $d->host,
-                port: $d->port,
-            ),
-            $model->definitions(HttpConfigurationDescriptor::class),
-        );
+        $descriptors = $model->definitions(HttpConfigurationDescriptor::class);
+
+        if ($descriptors === []) {
+            return [];
+        }
+
+        // Only one HTTP server can exist per runtime; take the first descriptor.
+        $first = $descriptors[0];
+
+        return [new HttpConfiguration(host: $first->host, port: $first->port)];
     }
 }

@@ -6,6 +6,7 @@ namespace Rokke\Http\Tests\Build;
 
 use PHPUnit\Framework\TestCase;
 use Rokke\Http\Build\HeaderInstruction;
+use Rokke\Runtime\Build\FactoryRepository;
 use Rokke\Runtime\Context\OperationContext;
 
 final class HeaderInstructionTest extends TestCase
@@ -21,7 +22,7 @@ final class HeaderInstructionTest extends TestCase
 		$instruction = new HeaderInstruction('X-Value', nullable: false);
 		$ctx         = $this->context(['x-value' => 'hello']);
 
-		$this->assertSame('hello', $instruction->resolve($ctx));
+		$this->assertSame('hello', $instruction->resolve($ctx, FactoryRepository::empty()));
 	}
 
 	public function testHeaderLookupIsCaseInsensitive(): void
@@ -29,7 +30,7 @@ final class HeaderInstructionTest extends TestCase
 		$instruction = new HeaderInstruction('Authorization', nullable: false);
 		$ctx         = $this->context(['authorization' => 'Bearer token123']);
 
-		$this->assertSame('Bearer token123', $instruction->resolve($ctx));
+		$this->assertSame('Bearer token123', $instruction->resolve($ctx, FactoryRepository::empty()));
 	}
 
 	public function testNullableHeaderReturnNullWhenAbsent(): void
@@ -37,7 +38,7 @@ final class HeaderInstructionTest extends TestCase
 		$instruction = new HeaderInstruction('X-Missing', nullable: true);
 		$ctx         = $this->context([]);
 
-		$this->assertNull($instruction->resolve($ctx));
+		$this->assertNull($instruction->resolve($ctx, FactoryRepository::empty()));
 	}
 
 	public function testRequiredHeaderThrowsWhenAbsent(): void
@@ -46,6 +47,6 @@ final class HeaderInstructionTest extends TestCase
 		$ctx         = $this->context([]);
 
 		$this->expectException(\RuntimeException::class);
-		$instruction->resolve($ctx);
+		$instruction->resolve($ctx, FactoryRepository::empty());
 	}
 }

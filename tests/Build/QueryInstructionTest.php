@@ -6,6 +6,7 @@ namespace Rokke\Http\Tests\Build;
 
 use PHPUnit\Framework\TestCase;
 use Rokke\Http\Build\QueryInstruction;
+use Rokke\Runtime\Build\FactoryRepository;
 use Rokke\Runtime\Context\OperationContext;
 
 final class QueryInstructionTest extends TestCase
@@ -21,7 +22,7 @@ final class QueryInstructionTest extends TestCase
 		$instruction = new QueryInstruction('term', 'string', nullable: false);
 		$ctx         = $this->context(['term' => 'hello']);
 
-		$this->assertSame('hello', $instruction->resolve($ctx));
+		$this->assertSame('hello', $instruction->resolve($ctx, FactoryRepository::empty()));
 	}
 
 	public function testCastsToInt(): void
@@ -29,7 +30,7 @@ final class QueryInstructionTest extends TestCase
 		$instruction = new QueryInstruction('page', 'int', nullable: false);
 		$ctx         = $this->context(['page' => '3']);
 
-		$this->assertSame(3, $instruction->resolve($ctx));
+		$this->assertSame(3, $instruction->resolve($ctx, FactoryRepository::empty()));
 	}
 
 	public function testCastsToFloat(): void
@@ -37,7 +38,7 @@ final class QueryInstructionTest extends TestCase
 		$instruction = new QueryInstruction('ratio', 'float', nullable: false);
 		$ctx         = $this->context(['ratio' => '1.5']);
 
-		$this->assertSame(1.5, $instruction->resolve($ctx));
+		$this->assertSame(1.5, $instruction->resolve($ctx, FactoryRepository::empty()));
 	}
 
 	public function testCastsToBool(): void
@@ -45,7 +46,7 @@ final class QueryInstructionTest extends TestCase
 		$instruction = new QueryInstruction('active', 'bool', nullable: false);
 		$ctx         = $this->context(['active' => 'true']);
 
-		$this->assertTrue($instruction->resolve($ctx));
+		$this->assertTrue($instruction->resolve($ctx, FactoryRepository::empty()));
 	}
 
 	public function testNullableReturnNullWhenAbsent(): void
@@ -53,7 +54,7 @@ final class QueryInstructionTest extends TestCase
 		$instruction = new QueryInstruction('q', 'string', nullable: true);
 		$ctx         = $this->context([]);
 
-		$this->assertNull($instruction->resolve($ctx));
+		$this->assertNull($instruction->resolve($ctx, FactoryRepository::empty()));
 	}
 
 	public function testRequiredThrowsWhenAbsent(): void
@@ -62,7 +63,7 @@ final class QueryInstructionTest extends TestCase
 		$ctx         = $this->context([]);
 
 		$this->expectException(\RuntimeException::class);
-		$instruction->resolve($ctx);
+		$instruction->resolve($ctx, FactoryRepository::empty());
 	}
 
 	public function testUsesCustomKeyName(): void
@@ -70,6 +71,6 @@ final class QueryInstructionTest extends TestCase
 		$instruction = new QueryInstruction('per_page', 'int', nullable: false);
 		$ctx         = $this->context(['per_page' => '20']);
 
-		$this->assertSame(20, $instruction->resolve($ctx));
+		$this->assertSame(20, $instruction->resolve($ctx, FactoryRepository::empty()));
 	}
 }

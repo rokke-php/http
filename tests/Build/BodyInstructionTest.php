@@ -6,6 +6,7 @@ namespace Rokke\Http\Tests\Build;
 
 use PHPUnit\Framework\TestCase;
 use Rokke\Http\Build\BodyInstruction;
+use Rokke\Runtime\Build\FactoryRepository;
 use Rokke\Runtime\Context\OperationContext;
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -40,7 +41,7 @@ final class BodyInstructionTest extends TestCase
 		$instruction = new BodyInstruction(BodyTestCommand::class);
 		$ctx         = $this->context('{"name":"Fernando","email":"f@rokke.dev"}');
 
-		$result = $instruction->resolve($ctx);
+		$result = $instruction->resolve($ctx, FactoryRepository::empty());
 
 		$this->assertInstanceOf(BodyTestCommand::class, $result);
 		$this->assertSame('Fernando', $result->name);
@@ -52,7 +53,7 @@ final class BodyInstructionTest extends TestCase
 		$instruction = new BodyInstruction(BodyTestCommandWithInt::class);
 		$ctx         = $this->context('{"name":"Ana","age":28}');
 
-		$result = $instruction->resolve($ctx);
+		$result = $instruction->resolve($ctx, FactoryRepository::empty());
 
 		$this->assertInstanceOf(BodyTestCommandWithInt::class, $result);
 		$this->assertSame('Ana', $result->name);
@@ -64,7 +65,7 @@ final class BodyInstructionTest extends TestCase
 		$instruction = new BodyInstruction(BodyTestCommand::class);
 		$ctx         = $this->context('{"name":"Fernando","email":"f@rokke.dev","extra":"ignored"}');
 
-		$result = $instruction->resolve($ctx);
+		$result = $instruction->resolve($ctx, FactoryRepository::empty());
 
 		$this->assertInstanceOf(BodyTestCommand::class, $result);
 		$this->assertSame('Fernando', $result->name);
@@ -75,7 +76,7 @@ final class BodyInstructionTest extends TestCase
 		$instruction = new BodyInstruction(BodyTestCommand::class);
 		$ctx         = $this->context('{}');
 
-		$result = $instruction->resolve($ctx);
+		$result = $instruction->resolve($ctx, FactoryRepository::empty());
 
 		$this->assertInstanceOf(BodyTestCommand::class, $result);
 		$this->assertNull($result->name);

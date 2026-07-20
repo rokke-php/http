@@ -7,7 +7,7 @@ namespace Rokke\Http\Build;
 use Rokke\Http\Compiled\CompiledRoute;
 use Rokke\Http\Compiled\CompiledRouteTree;
 
-final class RouteCompiler
+final class RouteBuildPass
 {
 	/** @param list<RouteDescriptor> $descriptors */
 	public function compile(array $descriptors): CompiledRouteTree

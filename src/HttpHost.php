@@ -16,9 +16,11 @@ final class HttpHost
 	private readonly ExecutionEngine $engine;
 	private readonly HttpContextFactory $contextFactory;
 	private readonly EmitterInterface $emitter;
+	private readonly CompiledRuntime $runtime;
 
 	public function __construct(CompiledRuntime $runtime, ?EmitterInterface $emitter = null)
 	{
+		$this->runtime        = $runtime;
 		$this->routeTree      = $runtime->artifacts->get(CompiledRouteTree::class) ?? CompiledRouteTree::empty();
 		$this->engine         = new ExecutionEngine($runtime);
 		$this->contextFactory = new HttpContextFactory();
@@ -43,9 +45,12 @@ final class HttpHost
 		return $this->engine->execute($operation, $context);
 	}
 
-	public function run(string $host, int $port): void
+	public function run(): void
 	{
-		$server = new \Swoole\Http\Server($host, $port);
+		$config = $this->runtime->configurations()->get(HttpConfiguration::class);
+		assert($config instanceof HttpConfiguration);
+
+		$server = new \Swoole\Http\Server($config->host, $config->port);
 
 		$server->on('request', function (\Swoole\Http\Request $request, \Swoole\Http\Response $response): void {
 			try {

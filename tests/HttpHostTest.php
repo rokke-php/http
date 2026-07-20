@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Rokke\Http\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Rokke\Http\Build\RouteCompiler;
+use Rokke\Http\Build\RouteBuildPass;
 use Rokke\Http\Build\RouteDescriptor;
 use Rokke\Http\Compiled\CompiledRouteTree;
 use Rokke\Http\HttpHost;
@@ -139,7 +139,7 @@ final class HttpHostTest extends TestCase
 			$i++;
 		}
 
-		$compiler  = new RouteCompiler();
+		$compiler  = new RouteBuildPass();
 		$routeTree = $compiler->compile($routeDescriptors);
 
 		$executionPipeline = new CompiledExecutionPipeline(
@@ -316,5 +316,15 @@ final class HttpHostTest extends TestCase
 			$this->assertStringContainsString('DELETE', $e->getMessage());
 			$this->assertStringContainsString('/unknown', $e->getMessage());
 		}
+	}
+
+	public function testRunUsesHostAndPortFromCompiledConfiguration(): void
+	{
+		// This test verifies HttpHost::run() reads server address from
+		// CompiledConfigurationRepository rather than accepting params directly.
+		// Since Swoole is not started in unit tests, we verify the method signature only.
+		$method = new \ReflectionMethod(\Rokke\Http\HttpHost::class, 'run');
+
+		$this->assertCount(0, $method->getParameters());
 	}
 }

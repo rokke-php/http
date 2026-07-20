@@ -122,7 +122,14 @@ final class HttpKernelTest extends TestCase
 	{
 		$kernel = new HttpKernel();
 		$kernel->register(new HttpExtension(self::FIXTURE_DIR, self::FIXTURE_NS));
-		$kernel->register(new HttpExtension(__DIR__ . '/Discovery/HealthFixture', 'Rokke\Http\Tests\Discovery\HealthFixture'));
+		$kernel->register(new class (__DIR__ . '/Discovery/HealthFixture', 'Rokke\Http\Tests\Discovery\HealthFixture') implements \Rokke\Contracts\Extension\ExtensionInterface {
+			public function __construct(private readonly string $dir, private readonly string $ns) {}
+
+			public function register(\Rokke\Contracts\Extension\ExtensionBuilderInterface $builder): void
+			{
+				$builder->addDiscoveryProvider(new \Rokke\Http\Discovery\HttpDirectoryDiscoveryProvider($this->dir, $this->ns));
+			}
+		});
 		$kernel->build();
 
 		$this->assertSame('pong', $kernel->host()->handle('GET', '/ping'));

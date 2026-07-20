@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Rokke\Http\Build;
 
+use Rokke\Runtime\Build\FactoryRepository;
 use Rokke\Runtime\Compiled\Arguments\ArgumentInstructionInterface;
 use Rokke\Runtime\Contracts\OperationContextInterface;
 
@@ -15,7 +16,7 @@ final readonly class QueryInstruction implements ArgumentInstructionInterface
 		private bool $nullable,
 	) {}
 
-	public function resolve(OperationContextInterface $context): mixed
+	public function resolve(OperationContextInterface $context, FactoryRepository $factories): mixed
 	{
 		/** @var array<string, string> $query */
 		$query = $context->metadata('query') ?? [];

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Rokke\Http\Build;
 
 use ReflectionClass;
+use Rokke\Runtime\Build\FactoryRepository;
 use Rokke\Runtime\Compiled\Arguments\ArgumentInstructionInterface;
 use Rokke\Runtime\Contracts\OperationContextInterface;
 
@@ -28,7 +29,7 @@ final class BodyInstruction implements ArgumentInstructionInterface
 			: [];
 	}
 
-	public function resolve(OperationContextInterface $context): mixed
+	public function resolve(OperationContextInterface $context, FactoryRepository $factories): mixed
 	{
 		$raw  = $context->metadata('body');
 		$data = is_string($raw) && $raw !== '' ? (json_decode($raw, true) ?? []) : [];

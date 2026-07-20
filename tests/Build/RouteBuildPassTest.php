@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace Rokke\Http\Tests\Build;
 
 use PHPUnit\Framework\TestCase;
-use Rokke\Http\Build\RouteCompiler;
+use Rokke\Http\Build\RouteBuildPass;
 use Rokke\Http\Build\RouteDescriptor;
 use Rokke\Http\Compiled\CompiledRouteTree;
 
-final class RouteCompilerTest extends TestCase
+final class RouteBuildPassTest extends TestCase
 {
-	private RouteCompiler $compiler;
+	private RouteBuildPass $compiler;
 
 	protected function setUp(): void
 	{
-		$this->compiler = new RouteCompiler();
+		$this->compiler = new RouteBuildPass();
 	}
 
 	public function testReturnsCompiledRouteTree(): void

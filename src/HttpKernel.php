@@ -10,7 +10,7 @@ use Rokke\Http\Build\HeaderArgumentSourceCompiler;
 use Rokke\Http\Build\HttpCapabilityPass;
 use Rokke\Http\Build\JsonResultSourceCompiler;
 use Rokke\Http\Build\QueryArgumentSourceCompiler;
-use Rokke\Http\Build\RouteCompiler;
+use Rokke\Http\Build\RouteBuildPass;
 use Rokke\Http\Build\RouteDescriptor;
 use Rokke\Http\Build\RouteParameterArgumentSourceCompiler;
 use Rokke\Http\Compiled\CompiledRouteTree;
@@ -31,6 +31,7 @@ use Rokke\Runtime\Build\ServiceModelBuilderPass;
 use Rokke\Runtime\Build\ValidationPlanCompiler;
 use Rokke\Runtime\Compiled\ArtifactRepository;
 use Rokke\Runtime\Compiled\CompiledBehaviorPipeline;
+use Rokke\Runtime\Compiled\CompiledConfigurationRepository;
 use Rokke\Runtime\Compiled\CompiledExecutionPipeline;
 use Rokke\Runtime\Compiled\CompiledInterceptorPipeline;
 use Rokke\Runtime\Compiled\CompiledOperation;
@@ -40,17 +41,17 @@ use Rokke\Runtime\Extension\ExtensionBuilder;
 use Rokke\Runtime\Extension\ExtensionRegistry;
 
 /**
- * Composition root for HTTP applications built from modules.
+ * Composition root for HTTP applications built from extensions.
  *
- * Wires the HTTP build pipeline (HttpCapabilityPass, RouteCompiler) together
+ * Wires the HTTP build pipeline (HttpCapabilityPass, RouteBuildPass) together
  * with the standard runtime pipeline (OperationModelBuilderPass, DiscoveryEngine)
  * and produces an HttpHost ready to serve requests.
  *
  * Usage:
  *   (new HttpKernel())
- *       ->register(new HttpModule(__DIR__ . '/app/Handler', 'App\Handler'))
+ *       ->register(new HttpExtension(__DIR__ . '/app/Handler', 'App\Handler', host: '0.0.0.0', port: 8080))
  *       ->build()
- *       ->run('0.0.0.0', 8080);
+ *       ->run();
  */
 final class HttpKernel
 {
@@ -85,8 +86,13 @@ final class HttpKernel
 		]);
 		$model = $modelBuilder->build($allCapabilities);
 
-		$routeCompiler = new RouteCompiler();
-		$routeTree     = $routeCompiler->compile($model->definitions(RouteDescriptor::class));
+		// Configuration descriptors are added to ApplicationModel for BuildPasses to read
+		foreach ($extensionBuilder->getConfigurationDescriptors() as $descriptor) {
+			$model->add($descriptor);
+		}
+
+		$routeBuildPass = new RouteBuildPass();
+		$routeTree      = $routeBuildPass->compile($model->definitions(RouteDescriptor::class));
 
 		$serviceDescriptors = $model->definitions(ServiceDescriptor::class);
 		$registeredImpls    = array_map(static fn (ServiceDescriptor $d): string => $d->implementation, $serviceDescriptors);
@@ -159,12 +165,21 @@ final class HttpKernel
 			validationPlans: $validationPlans,
 		);
 
+		$configuredArtifacts = [];
+		foreach ($this->extensions->getBuildPasses() as $pass) {
+			foreach ($pass->process($model) as $artifact) {
+				$configuredArtifacts[] = $artifact;
+			}
+		}
+		$configurations = CompiledConfigurationRepository::build($configuredArtifacts);
+
 		$runtime = new CompiledRuntime(
 			executionPipeline: $executionPipeline,
 			interceptorPipeline: CompiledInterceptorPipeline::empty(),
 			operations: OperationRepository::build($compiledOps),
 			factories: $factories,
 			artifacts: ArtifactRepository::build([CompiledRouteTree::class => $routeTree]),
+			configurations: $configurations,
 		);
 
 		$this->host = new HttpHost($runtime, $emitter);
@@ -181,8 +196,8 @@ final class HttpKernel
 		return $this->host;
 	}
 
-	public function run(string $host, int $port): void
+	public function run(): void
 	{
-		$this->host()->run($host, $port);
+		$this->host()->run();
 	}
 }
